@@ -1,0 +1,4 @@
+openpyxl
+selenium
+requests
+pandas
