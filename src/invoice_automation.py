@@ -1,7 +1,8 @@
 from openpyxl import load_workbook
 from datetime import datetime
 import os
-from config import FILE_PATH, upload_to_drive
+from src.config import FILE_PATH, upload_to_drive
+
 
 def force_update_trip_log(detected_clients, detected_addresses):
     """Write client names & multiple structured addresses into 'TRIP LOGS' sheet in Excel and upload changes to Google Drive."""
