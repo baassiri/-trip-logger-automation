@@ -4,96 +4,47 @@ import gdown
 from pydrive2.auth import GoogleAuth
 from pydrive2.drive import GoogleDrive
 
-try:
-    import streamlit as st
-except ImportError:
-    st = None
-
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(BASE_DIR, "data")
-LOCAL_FILE_PATH = os.path.join(DATA_DIR, "INVOICE_MANAGEMENT_AUTO.xlsm")
+FILE_PATH = os.path.join(DATA_DIR, "INVOICE_MANAGEMENT_AUTO.xlsm")
 SERVICE_ACCOUNT_PATH = os.path.join(BASE_DIR, "service_account.json")
-
-print("DEBUG: BASE_DIR =", BASE_DIR)
-
-# If running on Streamlit Cloud, create service_account.json from st.secrets if it doesn't exist.
-if st is not None:
-    if not os.path.exists(SERVICE_ACCOUNT_PATH):
-        print("DEBUG: service_account.json not found locally.")
-        if "service_account_json" in st.secrets:
-            try:
-                sa_json = st.secrets["service_account_json"]
-                print("DEBUG: Found st.secrets['service_account_json']: ", sa_json[:100], "...")
-                parsed = json.loads(sa_json)
-                with open(SERVICE_ACCOUNT_PATH, "w") as f:
-                    json.dump(parsed, f, indent=2)
-                print("✅ service_account.json created successfully from Streamlit secrets.")
-            except Exception as e:
-                print(f"❌ Failed to create service_account.json from st.secrets: {e}")
-        else:
-            print("❌ 'service_account_json' not found in st.secrets.")
-    else:
-        print("✅ service_account.json already exists.")
-else:
-    print("DEBUG: Running locally. Ensure service_account.json is present if needed.")
-
-os.makedirs(DATA_DIR, exist_ok=True)
-
-# Download the Excel file from Google Drive
-print("📥 Checking for the latest Excel file from Google Drive...")
 FILE_ID = "1LXsBrrREmdBbZQVRmBv6QBu0ZOFu3oS3"
-GDRIVE_URL = f"https://drive.google.com/uc?id={FILE_ID}"
-try:
-    gdown.download(GDRIVE_URL, LOCAL_FILE_PATH, quiet=False, fuzzy=True)
-    print(f"✅ File downloaded successfully: {LOCAL_FILE_PATH}")
-except Exception as e:
-    print(f"❌ Download failed: {e}")
-
-FILE_PATH = LOCAL_FILE_PATH
 
 def authenticate_drive():
     """Authenticate with Google Drive using a service account JSON."""
     gauth = GoogleAuth()
-
-    # Configure PyDrive2 for service account authentication and add the required key.
-    gauth.settings["client_config_backend"] = "service"
-    gauth.settings["service_config"] = {
-        "client_json_file_path": SERVICE_ACCOUNT_PATH,
-        "client_user_email": ""  # Leave empty if not impersonating
-    }
-
-    creds_path = os.path.join(BASE_DIR, "credentials.json")
-    if os.path.exists(creds_path):
-        gauth.LoadCredentialsFile(creds_path)
+    gauth.LoadCredentialsFile(SERVICE_ACCOUNT_PATH)
 
     try:
-        gauth.ServiceAuth()  # Uses the service account file; no interactive prompt.
+        gauth.ServiceAuth()
         print("✅ Authenticated using Service Account.")
     except Exception as e:
-        print(f"❌ Service account authentication failed: {e}")
-    gauth.SaveCredentialsFile(creds_path)
+        print(f"❌ Authentication failed: {e}")
+
     return GoogleDrive(gauth)
 
 def upload_to_drive():
+    """Uploads the updated Excel file back to Google Drive."""
     drive = authenticate_drive()
-    
+
     if not os.path.exists(FILE_PATH):
         print("❌ Upload failed: Local file not found!")
         return
 
-    try:
-        print(f"📤 Attempting to upload {FILE_PATH} to Google Drive...")
+    # Debug: Print file size before upload
+    print(f"📏 File size before upload: {os.path.getsize(FILE_PATH)} bytes")
 
-        # Overwrite by File ID instead of title-based search
-        file = drive.CreateFile({'id': '1LXsBrrREmdBbZQVRmBv6QBu0ZOFu3oS3'})
+    try:
+        print(f"📤 Attempting to overwrite {FILE_PATH} on Google Drive...")
+        file = drive.CreateFile({'id': FILE_ID})
         file.SetContentFile(FILE_PATH)
         file.Upload()
-        
-        # Fetch metadata to confirm update
-        uploaded_file = drive.CreateFile({'id': '1LXsBrrREmdBbZQVRmBv6QBu0ZOFu3oS3'})
+        print("✅ File uploaded successfully!")
+
+        # Fetch and verify the update
+        uploaded_file = drive.CreateFile({'id': FILE_ID})
         uploaded_file.FetchMetadata()
-        
-        print(f"✅ Upload successful! Metadata: {uploaded_file}")
+        print(f"✅ Google Drive metadata after upload: {uploaded_file}")
 
     except Exception as e:
-        print(f"❌ Error during file upload: {e}")
+        print(f"❌ Upload failed: {e}")
