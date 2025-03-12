@@ -16,19 +16,16 @@ DATA_DIR = os.path.join(BASE_DIR, "data")
 LOCAL_FILE_PATH = os.path.join(DATA_DIR, "INVOICE_MANAGEMENT_AUTO.xlsm")
 CLIENT_SECRETS_PATH = os.path.join(BASE_DIR, "client_secrets.json")
 
-# Debug: Print the current working directory and BASE_DIR
 print("DEBUG: Current working directory:", os.getcwd())
 print("DEBUG: BASE_DIR:", BASE_DIR)
 
-# On Streamlit Cloud, if client_secrets.json is missing, try to create it from st.secrets.
+# 1️⃣ If on Streamlit Cloud, create client_secrets.json from st.secrets if missing
 if st is not None:
     if not os.path.exists(CLIENT_SECRETS_PATH):
-        print("DEBUG: client_secrets.json not found locally.")
         if "client_secrets_json" in st.secrets:
             try:
-                # Print a truncated version of the secret for debugging (do not log full secret in production)
                 secret_value = st.secrets["client_secrets_json"]
-                print("DEBUG: Found st.secrets['client_secrets_json']:", secret_value[:100] + "...")
+                print("DEBUG: Found st.secrets['client_secrets_json']:", secret_value[:100], "...")
                 # Validate JSON
                 parsed = json.loads(secret_value)
                 with open(CLIENT_SECRETS_PATH, "w") as f:
@@ -41,12 +38,12 @@ if st is not None:
     else:
         print("✅ client_secrets.json already exists.")
 else:
-    print("Running locally: ensure client_secrets.json is present and valid.")
+    print("DEBUG: Running locally. Make sure client_secrets.json is present if needed.")
 
-# Ensure the 'data' directory exists
+# 2️⃣ Ensure 'data' directory exists
 os.makedirs(DATA_DIR, exist_ok=True)
 
-# Download the Excel file from Google Drive
+# 3️⃣ Download the Excel file from Google Drive
 print("📥 Checking for the latest Excel file from Google Drive...")
 FILE_ID = "1LXsBrrREmdBbZQVRmBv6QBu0ZOFu3oS3"
 GDRIVE_URL = f"https://drive.google.com/uc?id={FILE_ID}"
@@ -56,15 +53,21 @@ try:
 except Exception as e:
     print(f"❌ Download failed: {e}")
 
-# Set file path for other scripts
+# 4️⃣ Set file path for other scripts
 FILE_PATH = LOCAL_FILE_PATH
 
+# 5️⃣ Google Drive Authentication
 def authenticate_drive():
     """Authenticate with Google Drive and reuse credentials to prevent repeated logins."""
     gauth = GoogleAuth()
+
+    # Explicitly tell PyDrive2 to use our client_secrets.json
+    gauth.settings["client_config_file"] = CLIENT_SECRETS_PATH
+
     creds_path = os.path.join(BASE_DIR, "credentials.json")
     if os.path.exists(creds_path):
         gauth.LoadCredentialsFile(creds_path)
+
     if gauth.credentials is None:
         print("🔑 First-time authentication required. Opening browser...")
         gauth.LocalWebserverAuth()
@@ -73,9 +76,11 @@ def authenticate_drive():
         gauth.Refresh()
     else:
         print("✅ Using existing Google authentication.")
+
     gauth.SaveCredentialsFile(creds_path)
     return GoogleDrive(gauth)
 
+# 6️⃣ Upload updated Excel file back to Google Drive
 def upload_to_drive():
     """Uploads the updated Excel file back to Google Drive."""
     drive = authenticate_drive()
