@@ -1,7 +1,7 @@
 from openpyxl import load_workbook
 from datetime import datetime
 import os
-from src.config import FILE_PATH, upload_to_drive
+from config import FILE_PATH, upload_to_drive
 
 
 def force_update_trip_log(detected_clients, detected_addresses):
