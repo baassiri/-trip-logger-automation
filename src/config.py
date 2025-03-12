@@ -54,15 +54,18 @@ FILE_PATH = LOCAL_FILE_PATH
 def authenticate_drive():
     """Authenticate with Google Drive using a service account JSON."""
     gauth = GoogleAuth()
+
     # Configure PyDrive2 for service account authentication and add the required key.
     gauth.settings["client_config_backend"] = "service"
     gauth.settings["service_config"] = {
         "client_json_file_path": SERVICE_ACCOUNT_PATH,
-        "client_user_email": ""  # leave empty if not impersonating
+        "client_user_email": ""  # Leave empty if not impersonating
     }
+
     creds_path = os.path.join(BASE_DIR, "credentials.json")
     if os.path.exists(creds_path):
         gauth.LoadCredentialsFile(creds_path)
+
     try:
         gauth.ServiceAuth()  # Uses the service account file; no interactive prompt.
         print("✅ Authenticated using Service Account.")
@@ -73,17 +76,24 @@ def authenticate_drive():
 
 def upload_to_drive():
     drive = authenticate_drive()
+    
+    if not os.path.exists(FILE_PATH):
+        print("❌ Upload failed: Local file not found!")
+        return
+
     try:
-        print(f"📤 Uploading {FILE_PATH} to Google Drive...")
+        print(f"📤 Attempting to upload {FILE_PATH} to Google Drive...")
+
+        # Overwrite by File ID instead of title-based search
         file = drive.CreateFile({'id': '1LXsBrrREmdBbZQVRmBv6QBu0ZOFu3oS3'})
         file.SetContentFile(FILE_PATH)
         file.Upload()
-        print("✅ Overwrote existing XLSM in personal drive!")
         
-        # Confirm if file is correctly uploaded
+        # Fetch metadata to confirm update
         uploaded_file = drive.CreateFile({'id': '1LXsBrrREmdBbZQVRmBv6QBu0ZOFu3oS3'})
         uploaded_file.FetchMetadata()
-        print(f"🔍 File metadata after upload: {uploaded_file}")
+        
+        print(f"✅ Upload successful! Metadata: {uploaded_file}")
 
     except Exception as e:
         print(f"❌ Error during file upload: {e}")
