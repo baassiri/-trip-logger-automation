@@ -74,10 +74,16 @@ def authenticate_drive():
 def upload_to_drive():
     drive = authenticate_drive()
     try:
-        # Use your actual file ID:
+        print(f"📤 Uploading {FILE_PATH} to Google Drive...")
         file = drive.CreateFile({'id': '1LXsBrrREmdBbZQVRmBv6QBu0ZOFu3oS3'})
         file.SetContentFile(FILE_PATH)
         file.Upload()
         print("✅ Overwrote existing XLSM in personal drive!")
+        
+        # Confirm if file is correctly uploaded
+        uploaded_file = drive.CreateFile({'id': '1LXsBrrREmdBbZQVRmBv6QBu0ZOFu3oS3'})
+        uploaded_file.FetchMetadata()
+        print(f"🔍 File metadata after upload: {uploaded_file}")
+
     except Exception as e:
         print(f"❌ Error during file upload: {e}")
