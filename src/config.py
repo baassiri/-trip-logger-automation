@@ -27,16 +27,15 @@ if st is not None:
             print(f"❌ Failed to create service_account.json: {e}")
     else:
         print("✅ service_account.json already exists or no secrets provided.")
+else:
+    print("DEBUG: Running locally. Ensure service_account.json is present if needed.")
 
 os.makedirs(DATA_DIR, exist_ok=True)
 
-# Download Excel
-FILE_ID = "1LXsBrrREmdBbZQVRmBv6QBu0ZOFu3oS3"
-# Fixed line: properly closed the f-string
-GDRIVE_URL = f"https://drive.google.com/uc?id={FILE_ID}"
-
-# Download the Excel file
+# Download the Excel file from Google Drive
 print("📥 Checking for the latest Excel file from Google Drive...")
+FILE_ID = "1LXsBrrREmdBbZQVRmBv6QBu0ZOFu3oS3"
+GDRIVE_URL = f"https://drive.google.com/uc?id={FILE_ID}"
 try:
     gdown.download(GDRIVE_URL, LOCAL_FILE_PATH, quiet=False, fuzzy=True)
     print(f"✅ File downloaded successfully: {LOCAL_FILE_PATH}")
@@ -48,15 +47,21 @@ FILE_PATH = LOCAL_FILE_PATH
 def authenticate_drive():
     """Authenticate with Google Drive using a service account JSON."""
     gauth = GoogleAuth()
-
-    # Configure PyDrive2 to use 'service' instead of 'installed'
+    # Configure PyDrive2 for service account authentication and add client_user_email key.
     gauth.settings["client_config_backend"] = "service"
     gauth.settings["service_config"] = {
-        "client_json_file_path": SERVICE_ACCOUNT_PATH
+        "client_json_file_path": SERVICE_ACCOUNT_PATH,
+        "client_user_email": ""  # leave empty if not impersonating a user
     }
-
-    gauth.ServiceAuth()  # No interactive prompt
+    
+    creds_path = os.path.join(BASE_DIR, "credentials.json")
+    if os.path.exists(creds_path):
+        gauth.LoadCredentialsFile(creds_path)
+    
+    # Use service account auth; no interactive prompt needed
+    gauth.ServiceAuth()
     print("✅ Authenticated using Service Account.")
+    gauth.SaveCredentialsFile(creds_path)
     return GoogleDrive(gauth)
 
 def upload_to_drive():
