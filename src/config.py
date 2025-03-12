@@ -15,27 +15,29 @@ FILE_ID = "1LXsBrrREmdBbZQVRmBv6QBu0ZOFu3oS3"
 # Ensure data directory exists
 os.makedirs(DATA_DIR, exist_ok=True)
 
-# Check if file is missing, download it from Google Drive
-if not os.path.exists(FILE_PATH):
-    print("⚠️ File missing! Downloading from Google Drive...")
-    GDRIVE_URL = f"https://drive.google.com/uc?id={FILE_ID}"
-    try:
-        gdown.download(GDRIVE_URL, FILE_PATH, quiet=False, fuzzy=True)
-        print(f"✅ File downloaded successfully: {FILE_PATH}")
-    except Exception as e:
-        print(f"❌ Download failed: {e}")
-
-# Ensure service account file exists
-if st and not os.path.exists(SERVICE_ACCOUNT_PATH):
-    if "service_account_json" in st.secrets:
+# Download the file from Google Drive if missing
+def download_from_drive():
+    if not os.path.exists(FILE_PATH):
+        print("⚠️ File missing! Downloading from Google Drive...")
+        GDRIVE_URL = f"https://drive.google.com/uc?id={FILE_ID}"
         try:
-            with open(SERVICE_ACCOUNT_PATH, "w") as f:
-                json.dump(json.loads(st.secrets["service_account_json"]), f, indent=2)
-            print("✅ service_account.json created from Streamlit secrets.")
+            gdown.download(GDRIVE_URL, FILE_PATH, quiet=False, fuzzy=True)
+            print(f"✅ File downloaded successfully: {FILE_PATH}")
         except Exception as e:
-            print(f"❌ Failed to create service_account.json: {e}")
-    else:
-        print("❌ 'service_account_json' not found in Streamlit secrets!")
+            print(f"❌ Download failed: {e}")
+
+# Ensure service account JSON exists for authentication
+def setup_service_account():
+    if st and not os.path.exists(SERVICE_ACCOUNT_PATH):
+        if "service_account_json" in st.secrets:
+            try:
+                with open(SERVICE_ACCOUNT_PATH, "w") as f:
+                    json.dump(json.loads(st.secrets["service_account_json"]), f, indent=2)
+                print("✅ service_account.json created from Streamlit secrets.")
+            except Exception as e:
+                print(f"❌ Failed to create service_account.json: {e}")
+        else:
+            print("❌ 'service_account_json' not found in Streamlit secrets!")
 
 def authenticate_drive():
     """Authenticate with Google Drive using a service account JSON."""
@@ -87,3 +89,7 @@ def upload_to_drive():
 
     except Exception as e:
         print(f"❌ Upload failed: {e}")
+
+# Ensure file and service account setup before proceeding
+setup_service_account()
+download_from_drive()
