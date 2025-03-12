@@ -15,7 +15,17 @@ FILE_ID = "1LXsBrrREmdBbZQVRmBv6QBu0ZOFu3oS3"
 # Ensure data directory exists
 os.makedirs(DATA_DIR, exist_ok=True)
 
-# Regenerate service_account.json if missing (for Streamlit Cloud)
+# Check if file is missing, download it from Google Drive
+if not os.path.exists(FILE_PATH):
+    print("⚠️ File missing! Downloading from Google Drive...")
+    GDRIVE_URL = f"https://drive.google.com/uc?id={FILE_ID}"
+    try:
+        gdown.download(GDRIVE_URL, FILE_PATH, quiet=False, fuzzy=True)
+        print(f"✅ File downloaded successfully: {FILE_PATH}")
+    except Exception as e:
+        print(f"❌ Download failed: {e}")
+
+# Ensure service account file exists
 if st and not os.path.exists(SERVICE_ACCOUNT_PATH):
     if "service_account_json" in st.secrets:
         try:
