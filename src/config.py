@@ -59,7 +59,8 @@ def authenticate_drive():
         return None
 
 def upload_to_drive():
-    """Uploads the updated Excel file back to Google Drive."""
+    """ Uploads the updated Excel file to Google Drive """
+    
     drive = authenticate_drive()
     if drive is None:
         print("❌ Upload aborted: Authentication failed.")
@@ -69,14 +70,11 @@ def upload_to_drive():
         print("❌ Upload failed: Local file not found!")
         return
 
-    # Debug: Print file size before upload
     file_size = os.path.getsize(FILE_PATH)
     print(f"📏 File size before upload: {file_size} bytes")
 
     try:
-        print(f"📤 Uploading {FILE_PATH} to Google Drive...")
-
-        # Overwrite existing file using FILE_ID
+        print(f"📤 Attempting to overwrite {FILE_PATH} on Google Drive...")
         file = drive.CreateFile({'id': FILE_ID})
         file.SetContentFile(FILE_PATH)
         file.Upload()
@@ -89,6 +87,7 @@ def upload_to_drive():
 
     except Exception as e:
         print(f"❌ Upload failed: {e}")
+
 
 
 # Ensure file and service account setup before proceeding
