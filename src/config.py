@@ -72,19 +72,12 @@ def authenticate_drive():
     return GoogleDrive(gauth)
 
 def upload_to_drive():
-    """Uploads the updated Excel file back to Google Drive."""
     drive = authenticate_drive()
     try:
-        file_list = drive.ListFile({'q': "title='INVOICE_MANAGEMENT_AUTO.xlsm'"}).GetList()
-        if file_list:
-            file = file_list[0]
-            file.SetContentFile(FILE_PATH)
-            file.Upload()
-            print("✅ Updated Excel file uploaded to Google Drive!")
-        else:
-            file = drive.CreateFile({'title': "INVOICE_MANAGEMENT_AUTO.xlsm"})
-            file.SetContentFile(FILE_PATH)
-            file.Upload()
-            print("✅ New Excel file uploaded to Google Drive!")
+        # Use your actual file ID:
+        file = drive.CreateFile({'id': '1LXsBrrREmdBbZQVRmBv6QBu0ZOFu3oS3'})
+        file.SetContentFile(FILE_PATH)
+        file.Upload()
+        print("✅ Overwrote existing XLSM in personal drive!")
     except Exception as e:
         print(f"❌ Error during file upload: {e}")
