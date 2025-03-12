@@ -53,20 +53,28 @@ try:
     wb = load_workbook(FILE_PATH, data_only=True)
     ws = wb["TRIP LOGS"]
 
+    # Extract all rows (A..U => 21 columns) from row 7 onwards
     data = []
-    for row in ws.iter_rows(min_row=7, values_only=True):
+    for row in ws.iter_rows(min_row=7, max_col=21, values_only=True):
+        # row will be a 21-element tuple (if the sheet truly has 21 columns)
         if any(row):  # Avoid empty rows
             data.append(row)
 
     if data:
-        df = pd.DataFrame(data, columns=["Date", "Client", "Base", "Home", "Destination 1", "Destination 2", "Destination 3", "Destination 4", "Destination 5"])
+        # Define 21 column headers
+        columns_21 = [
+            "Date", "Client", "Base", "Home",
+            "Destination 1", "Destination 2", "Destination 3", "Destination 4", "Destination 5",
+            "Col10", "Col11", "Col12", "Col13", "Col14", "Col15", "Col16", "Col17", "Col18", "Col19", "Col20", "Col21"
+        ]
+        df = pd.DataFrame(data, columns=columns_21)
+
         st.dataframe(df)
 
         # Create a CSV export
         csv_buffer = io.StringIO()
         df.to_csv(csv_buffer, index=False)
         st.download_button("📥 Download as CSV", csv_buffer.getvalue(), "trip_logs.csv", "text/csv")
-
     else:
         st.info("ℹ️ No trip logs available yet.")
 
