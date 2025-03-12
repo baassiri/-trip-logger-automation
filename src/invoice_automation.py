@@ -1,18 +1,28 @@
-# src/invoice_automation.py
-import os
 from openpyxl import load_workbook
 from datetime import datetime
+import os
 from config import FILE_PATH
 
 def force_update_trip_log(detected_clients, detected_addresses):
-    """Write client names & addresses into 'TRIP LOGS' sheet in Excel."""
-    if not os.path.exists(FILE_PATH):
+    """Write client names & multiple structured addresses into 'TRIP LOGS' sheet in Excel."""
+    
+    if not FILE_PATH or not os.path.exists(FILE_PATH):
         print(f"❌ Excel file not found: {FILE_PATH}")
         return
+    
+    try:
+        wb = load_workbook(FILE_PATH, keep_vba=True)
+    except Exception as e:
+        print(f"⚠️ Error loading Excel file: {e}")
+        return
+    
+    # Ensure 'TRIP LOGS' sheet exists
+    if "TRIP LOGS" not in wb.sheetnames:
+        print("❌ 'TRIP LOGS' sheet not found in Excel file.")
+        wb.close()
+        return
 
-    wb = load_workbook(FILE_PATH, keep_vba=True)
     ws = wb["TRIP LOGS"]
-
     current_date = datetime.now().strftime("%m/%d/%Y")
 
     # Find first empty row in column B (Client)
@@ -21,15 +31,23 @@ def force_update_trip_log(detected_clients, detected_addresses):
         empty_row += 1
 
     for client in detected_clients:
-        address = detected_addresses.get(client, "Unknown Address")
-        print(f"🔹 Logging {client} with address '{address}' at row {empty_row}")
+        addresses = detected_addresses.get(client, [])
 
-        ws[f"A{empty_row}"].value = current_date
-        ws[f"B{empty_row}"].value = client
-        ws[f"E{empty_row}"].value = address
+        print(f"🔹 Logging {client} with addresses: {addresses} at row {empty_row}")
 
-        empty_row += 1
+        ws[f"A{empty_row}"].value = current_date  # Log the date
+        ws[f"B{empty_row}"].value = client  # Log the client name
 
-    wb.save(FILE_PATH)
+        # Log up to 5 structured addresses in columns E, F, G, H, I
+        for i, address in enumerate(addresses[:5]):  # Maximum of 5 destinations
+            ws.cell(row=empty_row, column=5 + i, value=address)
+
+        empty_row += 1  # Move to the next row for new entries
+
+    try:
+        wb.save(FILE_PATH)
+        print("✅ Trip log updated with structured addresses!")
+    except Exception as e:
+        print(f"⚠️ Error saving Excel file: {e}")
+    
     wb.close()
-    print("✅ Trip log updated!")
