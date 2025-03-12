@@ -1,9 +1,15 @@
 import streamlit as st
 import pandas as pd
+import io
 from openpyxl import load_workbook
 from invoice_automation import force_update_trip_log
+import sys
+import os
+
+# Ensure `src/` folder is in the Python path
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
 from config import FILE_PATH
-import io
 
 # Set Streamlit page config
 st.set_page_config(page_title="Trip Logger", layout="wide")
@@ -13,17 +19,32 @@ st.title("🚛 Trip Logger Automation")
 
 # Input Fields
 client_name = st.text_input("Enter Client Name")
-client_address = st.text_input("Enter Client Address")
+
+# Dynamic address input
+addresses = []
+address_count = st.number_input("Number of Addresses", min_value=1, max_value=5, value=1, step=1)
+
+for i in range(address_count):
+    st.subheader(f"Address {i + 1}")
+    address1 = st.text_input(f"Address Line 1 - {i + 1}")
+    address2 = st.text_input(f"Address Line 2 (Optional) - {i + 1}")
+    city = st.text_input(f"City - {i + 1}")
+    state = st.text_input(f"State (2-letter code) - {i + 1}")
+    zip_code = st.text_input(f"ZIP Code - {i + 1}")
+
+    if address1 and city and state and zip_code:
+        full_address = f"{address1}, {address2 + ', ' if address2 else ''}{city}, {state} {zip_code}"
+        addresses.append(full_address)
 
 # Button to log the trip
 if st.button("Log Trip"):
-    if client_name and client_address:
+    if client_name and addresses:
         detected_clients = [client_name]
-        detected_addresses = {client_name: [client_address]}  # Ensuring list format
+        detected_addresses = {client_name: addresses}  # Store addresses in dictionary
         force_update_trip_log(detected_clients, detected_addresses)
         st.success(f"✅ Trip logged for {client_name}")
     else:
-        st.warning("⚠️ Please enter both Client Name and Address.")
+        st.warning("⚠️ Please enter both Client Name and at least one complete Address.")
 
 # Load and display the trip logs
 st.subheader("📋 Current Trip Logs")

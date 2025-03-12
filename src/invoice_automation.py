@@ -1,10 +1,10 @@
 from openpyxl import load_workbook
 from datetime import datetime
 import os
-from config import FILE_PATH
+from config import FILE_PATH, upload_to_drive
 
 def force_update_trip_log(detected_clients, detected_addresses):
-    """Write client names & multiple structured addresses into 'TRIP LOGS' sheet in Excel."""
+    """Write client names & multiple structured addresses into 'TRIP LOGS' sheet in Excel and upload changes to Google Drive."""
     
     if not FILE_PATH or not os.path.exists(FILE_PATH):
         print(f"❌ Excel file not found: {FILE_PATH}")
@@ -30,14 +30,8 @@ def force_update_trip_log(detected_clients, detected_addresses):
     while ws[f"B{empty_row}"].value:
         empty_row += 1
 
-    updates_made = False  # Track if any updates were made
-
     for client in detected_clients:
         addresses = detected_addresses.get(client, [])
-
-        if not addresses:
-            print(f"⚠️ No addresses found for {client}, skipping.")
-            continue
 
         print(f"🔹 Logging {client} with addresses: {addresses} at row {empty_row}")
 
@@ -49,13 +43,14 @@ def force_update_trip_log(detected_clients, detected_addresses):
             ws.cell(row=empty_row, column=5 + i, value=address)
 
         empty_row += 1  # Move to the next row for new entries
-        updates_made = True
 
-    if updates_made:
-        try:
-            wb.save(FILE_PATH)
-            print("✅ Trip log updated successfully!")
-        except Exception as e:
-            print(f"⚠️ Error saving Excel file: {e}")
-
+    try:
+        wb.save(FILE_PATH)
+        print("✅ Trip log updated successfully!")
+    except Exception as e:
+        print(f"⚠️ Error saving Excel file: {e}")
+    
     wb.close()
+
+    # Upload updated file back to Google Drive
+    upload_to_drive()

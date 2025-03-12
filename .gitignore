@@ -10,9 +10,7 @@ venv/
 __pycache__/
 *.pyc
 *.pyo
+
 # Ignore Rust files
 .rustup/
 cargo/
-venv/
-__pycache__/
-*.pyc

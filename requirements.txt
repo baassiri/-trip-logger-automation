@@ -2,3 +2,5 @@ openpyxl
 selenium
 requests
 pandas
+gdown
+PyDrive2
