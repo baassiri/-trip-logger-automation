@@ -4,43 +4,33 @@ import gdown
 from pydrive2.auth import GoogleAuth
 from pydrive2.drive import GoogleDrive
 
-# Try to import streamlit to access st.secrets
 try:
     import streamlit as st
 except ImportError:
     st = None
 
-# Define paths (assuming config.py is in src/)
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(BASE_DIR, "data")
 LOCAL_FILE_PATH = os.path.join(DATA_DIR, "INVOICE_MANAGEMENT_AUTO.xlsm")
 CLIENT_SECRETS_PATH = os.path.join(BASE_DIR, "client_secrets.json")
 
-print("DEBUG: Current working directory:", os.getcwd())
-print("DEBUG: BASE_DIR:", BASE_DIR)
-
-# 1️⃣ If on Streamlit Cloud, create client_secrets.json from st.secrets if missing
+# 1️⃣ If on Streamlit Cloud, create client_secrets.json from st.secrets
 if st is not None:
-    if not os.path.exists(CLIENT_SECRETS_PATH):
-        if "client_secrets_json" in st.secrets:
-            try:
-                secret_value = st.secrets["client_secrets_json"]
-                print("DEBUG: Found st.secrets['client_secrets_json']:", secret_value[:100], "...")
-                # Validate JSON
-                parsed = json.loads(secret_value)
-                with open(CLIENT_SECRETS_PATH, "w") as f:
-                    json.dump(parsed, f, indent=2)
-                print("✅ client_secrets.json created successfully from Streamlit secrets.")
-            except Exception as e:
-                print(f"❌ Failed to create client_secrets.json from st.secrets: {e}")
-        else:
-            print("❌ 'client_secrets_json' not found in st.secrets.")
+    if not os.path.exists(CLIENT_SECRETS_PATH) and "client_secrets_json" in st.secrets:
+        try:
+            secret_value = st.secrets["client_secrets_json"]
+            parsed = json.loads(secret_value)
+            with open(CLIENT_SECRETS_PATH, "w") as f:
+                json.dump(parsed, f, indent=2)
+            print("✅ client_secrets.json created from Streamlit secrets.")
+        except Exception as e:
+            print(f"❌ Failed to create client_secrets.json from st.secrets: {e}")
     else:
-        print("✅ client_secrets.json already exists.")
+        print("✅ client_secrets.json exists or no secrets provided.")
 else:
-    print("DEBUG: Running locally. Make sure client_secrets.json is present if needed.")
+    print("DEBUG: Running locally. Ensure client_secrets.json is present if needed.")
 
-# 2️⃣ Ensure 'data' directory exists
+# 2️⃣ Ensure 'data' directory
 os.makedirs(DATA_DIR, exist_ok=True)
 
 # 3️⃣ Download the Excel file from Google Drive
@@ -53,15 +43,13 @@ try:
 except Exception as e:
     print(f"❌ Download failed: {e}")
 
-# 4️⃣ Set file path for other scripts
 FILE_PATH = LOCAL_FILE_PATH
 
-# 5️⃣ Google Drive Authentication
 def authenticate_drive():
-    """Authenticate with Google Drive and reuse credentials to prevent repeated logins."""
+    """Authenticate with Google Drive using CommandLineAuth on Streamlit Cloud, or LocalWebserverAuth locally."""
     gauth = GoogleAuth()
 
-    # Explicitly tell PyDrive2 to use our client_secrets.json
+    # Point PyDrive2 to your client_secrets.json
     gauth.settings["client_config_file"] = CLIENT_SECRETS_PATH
 
     creds_path = os.path.join(BASE_DIR, "credentials.json")
@@ -69,8 +57,14 @@ def authenticate_drive():
         gauth.LoadCredentialsFile(creds_path)
 
     if gauth.credentials is None:
-        print("🔑 First-time authentication required. Opening browser...")
-        gauth.LocalWebserverAuth()
+        if st is not None:
+            # On Streamlit Cloud → use CommandLineAuth
+            print("🔑 Using CommandLineAuth (headless) on Streamlit Cloud.")
+            gauth.CommandLineAuth()
+        else:
+            # Local dev → use LocalWebserverAuth
+            print("🔑 First-time local auth. Opening browser on port 8080.")
+            gauth.LocalWebserverAuth()
     elif gauth.access_token_expired:
         print("🔄 Refreshing expired token...")
         gauth.Refresh()
@@ -80,7 +74,6 @@ def authenticate_drive():
     gauth.SaveCredentialsFile(creds_path)
     return GoogleDrive(gauth)
 
-# 6️⃣ Upload updated Excel file back to Google Drive
 def upload_to_drive():
     """Uploads the updated Excel file back to Google Drive."""
     drive = authenticate_drive()
