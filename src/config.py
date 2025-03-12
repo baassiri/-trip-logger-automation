@@ -14,19 +14,26 @@ DATA_DIR = os.path.join(BASE_DIR, "data")
 LOCAL_FILE_PATH = os.path.join(DATA_DIR, "INVOICE_MANAGEMENT_AUTO.xlsm")
 SERVICE_ACCOUNT_PATH = os.path.join(BASE_DIR, "service_account.json")
 
-# If on Streamlit, create service_account.json from secrets
+print("DEBUG: BASE_DIR =", BASE_DIR)
+
+# If running on Streamlit Cloud, create service_account.json from st.secrets if it doesn't exist.
 if st is not None:
-    if not os.path.exists(SERVICE_ACCOUNT_PATH) and "service_account_json" in st.secrets:
-        try:
-            sa_json = st.secrets["service_account_json"]
-            parsed = json.loads(sa_json)
-            with open(SERVICE_ACCOUNT_PATH, "w") as f:
-                json.dump(parsed, f)
-            print("✅ service_account.json created from Streamlit secrets.")
-        except Exception as e:
-            print(f"❌ Failed to create service_account.json: {e}")
+    if not os.path.exists(SERVICE_ACCOUNT_PATH):
+        print("DEBUG: service_account.json not found locally.")
+        if "service_account_json" in st.secrets:
+            try:
+                sa_json = st.secrets["service_account_json"]
+                print("DEBUG: Found st.secrets['service_account_json']: ", sa_json[:100], "...")
+                parsed = json.loads(sa_json)
+                with open(SERVICE_ACCOUNT_PATH, "w") as f:
+                    json.dump(parsed, f, indent=2)
+                print("✅ service_account.json created successfully from Streamlit secrets.")
+            except Exception as e:
+                print(f"❌ Failed to create service_account.json from st.secrets: {e}")
+        else:
+            print("❌ 'service_account_json' not found in st.secrets.")
     else:
-        print("✅ service_account.json already exists or no secrets provided.")
+        print("✅ service_account.json already exists.")
 else:
     print("DEBUG: Running locally. Ensure service_account.json is present if needed.")
 
@@ -47,20 +54,20 @@ FILE_PATH = LOCAL_FILE_PATH
 def authenticate_drive():
     """Authenticate with Google Drive using a service account JSON."""
     gauth = GoogleAuth()
-    # Configure PyDrive2 for service account authentication and add client_user_email key.
+    # Configure PyDrive2 for service account authentication and add the required key.
     gauth.settings["client_config_backend"] = "service"
     gauth.settings["service_config"] = {
         "client_json_file_path": SERVICE_ACCOUNT_PATH,
-        "client_user_email": ""  # leave empty if not impersonating a user
+        "client_user_email": ""  # leave empty if not impersonating
     }
-    
     creds_path = os.path.join(BASE_DIR, "credentials.json")
     if os.path.exists(creds_path):
         gauth.LoadCredentialsFile(creds_path)
-    
-    # Use service account auth; no interactive prompt needed
-    gauth.ServiceAuth()
-    print("✅ Authenticated using Service Account.")
+    try:
+        gauth.ServiceAuth()  # Uses the service account file; no interactive prompt.
+        print("✅ Authenticated using Service Account.")
+    except Exception as e:
+        print(f"❌ Service account authentication failed: {e}")
     gauth.SaveCredentialsFile(creds_path)
     return GoogleDrive(gauth)
 
