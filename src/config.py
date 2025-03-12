@@ -4,7 +4,7 @@ from pydrive2.auth import GoogleAuth
 from pydrive2.drive import GoogleDrive
 
 # Define paths
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))  # Ensure it's inside src/
 DATA_DIR = os.path.join(BASE_DIR, "data")
 LOCAL_FILE_PATH = os.path.join(DATA_DIR, "INVOICE MANAGEMENT AUTO.xlsm")
 
@@ -15,7 +15,7 @@ GDRIVE_URL = f"https://drive.google.com/uc?id={FILE_ID}"
 # Ensure 'data' directory exists
 os.makedirs(DATA_DIR, exist_ok=True)
 
-# Download file if it doesn't exist
+# 🔹 Automatically download the Excel file if it's missing
 if not os.path.exists(LOCAL_FILE_PATH):
     print("📥 Downloading Excel file from Google Drive...")
     try:
@@ -29,13 +29,13 @@ else:
 # Set file path for other scripts
 FILE_PATH = LOCAL_FILE_PATH
 
-# 🔹 Persistent Google Drive authentication
+# 🔹 Persistent Google Drive Authentication
 def authenticate_drive():
     """Authenticate with Google Drive and reuse credentials to prevent login prompts."""
     gauth = GoogleAuth()
-
-    # Use existing credentials if available
     creds_path = os.path.join(BASE_DIR, "credentials.json")
+
+    # Load existing credentials if available
     if os.path.exists(creds_path):
         gauth.LoadCredentialsFile(creds_path)
 
@@ -48,7 +48,7 @@ def authenticate_drive():
     else:
         print("✅ Using existing Google authentication.")
 
-    gauth.SaveCredentialsFile(creds_path)  # Save credentials
+    gauth.SaveCredentialsFile(creds_path)  # Save credentials to avoid re-authentication
     return GoogleDrive(gauth)
 
 # 🔹 Upload updated file back to Google Drive
