@@ -6,8 +6,8 @@ from config import FILE_PATH, upload_to_drive
 print("✅ Script started!")
 
 def force_update_trip_log(detected_clients, detected_addresses):
-    """Append trip logs after the last used row in Column A (starting from row 7)."""
-
+    """Append trip logs correctly after the last used row in Column A (starting from row 7)."""
+    
     if not os.path.exists(FILE_PATH):
         print(f"❌ Excel file not found: {FILE_PATH}")
         return
@@ -22,41 +22,42 @@ def force_update_trip_log(detected_clients, detected_addresses):
     current_date = datetime.now().strftime("%m/%d/%Y")
     print(f"📅 Processing trip logs for: {current_date}")
 
-    # 1️⃣ Find the last used row in Column A (>= row 7).
-    last_row = 7
-    for row in range(7, ws.max_row + 1):
-        if ws.cell(row=row, column=1).value:  # Column A is column=1
-            last_row = row
+    # Determine the last row with actual data in Column A by iterating backward
+    last_used_row = 7  # start at row 7
+    for row in range(ws.max_row, 6, -1):  # from max_row down to row 7
+        cell_value = ws.cell(row=row, column=1).value
+        if cell_value is not None and str(cell_value).strip() != "":
+            last_used_row = row
+            break
 
-    # 2️⃣ We'll insert new entries starting at last_row + 1
-    new_row = last_row + 1
+    # The next new entry will be added in the row immediately after the last used row
+    new_row = last_used_row + 1
 
-    # Process each client
     for client in detected_clients:
         addresses = detected_addresses.get(client, [])
         row_found = None
 
-        # 3️⃣ Check if this client/date already exists in rows 7..last_row
-        for row in range(7, last_row + 1):
+        # Check if this client on the current date already exists (only search rows 7 to last_used_row)
+        for row in range(7, last_used_row + 1):
             if ws.cell(row=row, column=1).value == current_date and ws.cell(row=row, column=2).value == client:
                 row_found = row
                 break
 
         if row_found is None:
-            # 4️⃣ Insert a new entry at new_row
-            ws.cell(row=new_row, column=1, value=current_date)  # Date in Col A
-            ws.cell(row=new_row, column=2, value=client)        # Client in Col B
+            # Insert a new entry at new_row
+            ws.cell(row=new_row, column=1, value=current_date)  # Date in Column A
+            ws.cell(row=new_row, column=2, value=client)           # Client in Column B
 
-            for i, address in enumerate(addresses[:5]):  # Up to 5 destinations
+            for i, address in enumerate(addresses[:5]):  # Up to 5 destinations (Columns E to I)
                 ws.cell(row=new_row, column=5 + i, value=address)
 
             print(f"🆕 Created new entry for {client} at row {new_row} with addresses: {addresses}")
-            new_row += 1  # Next new entry goes one row down
+            new_row += 1  # Update for the next new entry
         else:
-            # 5️⃣ If found, append addresses in the next available columns (E..I)
+            # Append addresses to the found row – in the next available destination columns (E to I)
             for address in addresses:
-                for col in range(5, 10):  # E=5..I=9
-                    if not ws.cell(row=row_found, column=col).value:
+                for col in range(5, 10):  # Columns 5 (E) to 9 (I)
+                    if ws.cell(row=row_found, column=col).value in [None, ""]:
                         ws.cell(row=row_found, column=col, value=address)
                         print(f"📌 Added {address} to {client} at row {row_found}, column {col}")
                         break
@@ -67,7 +68,6 @@ def force_update_trip_log(detected_clients, detected_addresses):
         row_values = [ws.cell(row=row, column=col).value for col in range(1, 11)]
         print(row_values)
 
-    # 6️⃣ Save and upload
     try:
         wb.save(FILE_PATH)
         wb.close()
@@ -76,3 +76,7 @@ def force_update_trip_log(detected_clients, detected_addresses):
         print(f"⚠️ Error saving Excel file: {e}")
 
     upload_to_drive()
+
+# For testing purposes:
+if __name__ == "__main__":
+    force_update_trip_log(['Test Client'], {'Test Client': ['Test Address']})
