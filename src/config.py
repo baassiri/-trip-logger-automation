@@ -6,6 +6,7 @@ from pydrive2.drive import GoogleDrive
 import streamlit as st
 
 # Define paths
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(BASE_DIR, "data")
 FILE_PATH = os.path.join(DATA_DIR, "INVOICE_MANAGEMENT_AUTO.xlsm")
@@ -41,22 +42,22 @@ def setup_service_account():
 
 def authenticate_drive():
     """Authenticate with Google Drive using a service account JSON."""
-    if not os.path.exists(SERVICE_ACCOUNT_PATH):
-        print("❌ Authentication failed: service_account.json not found!")
-        return None
-
     gauth = GoogleAuth()
     
+    gauth.settings["client_config_backend"] = "service"
+    gauth.settings["service_config"] = {
+        "client_json_file_path": SERVICE_ACCOUNT_PATH,
+        "client_user_email": "streamlit-service-account@drive-api-453511.iam.gserviceaccount.com"  # Add your service account email
+    }
+    
     try:
-        gauth.LoadCredentialsFile(SERVICE_ACCOUNT_PATH)
-        if gauth.credentials is None:
-            gauth.LocalWebserverAuth()  # Use interactive authentication if needed
         gauth.ServiceAuth()
         print("✅ Authenticated using Service Account.")
-        return GoogleDrive(gauth)
     except Exception as e:
-        print(f"❌ Authentication error: {e}")
-        return None
+        print(f"❌ Authentication failed: {e}")
+
+    return GoogleDrive(gauth)
+
 
 def upload_to_drive():
     """ Uploads the updated Excel file to Google Drive """
