@@ -11,11 +11,23 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from config import FILE_PATH
 
+# Ensure correct working directory
+os.chdir(os.path.dirname(FILE_PATH))
+
 # Set Streamlit page config
 st.set_page_config(page_title="Trip Logger", layout="wide")
 
 # Title
 st.title("🚛 Trip Logger Automation")
+
+# Debugging: Show current working directory
+st.write(f"📂 **Current Working Directory:** `{os.getcwd()}`")
+st.write(f"📄 **Excel File Path:** `{FILE_PATH}`")
+
+if not os.path.exists(FILE_PATH):
+    st.error("❌ Excel file NOT found!")
+else:
+    st.success("✅ Excel file found!")
 
 # Input Fields
 client_name = st.text_input("Enter Client Name")
@@ -25,12 +37,14 @@ addresses = []
 address_count = st.number_input("Number of Addresses", min_value=1, max_value=5, value=1, step=1)
 
 for i in range(address_count):
-    st.subheader(f"Address {i + 1}")
-    address1 = st.text_input(f"Address Line 1 - {i + 1}")
-    address2 = st.text_input(f"Address Line 2 (Optional) - {i + 1}")
-    city = st.text_input(f"City - {i + 1}")
-    state = st.text_input(f"State (2-letter code) - {i + 1}")
-    zip_code = st.text_input(f"ZIP Code - {i + 1}")
+    col1, col2 = st.columns(2)
+    with col1:
+        address1 = st.text_input(f"Address Line 1 - {i + 1}")
+        address2 = st.text_input(f"Address Line 2 (Optional) - {i + 1}")
+    with col2:
+        city = st.text_input(f"City - {i + 1}")
+        state = st.text_input(f"State (2-letter code) - {i + 1}")
+        zip_code = st.text_input(f"ZIP Code - {i + 1}")
 
     if address1 and city and state and zip_code:
         full_address = f"{address1}, {address2 + ', ' if address2 else ''}{city}, {state} {zip_code}"
@@ -53,21 +67,19 @@ try:
     wb = load_workbook(FILE_PATH, data_only=True)
     ws = wb["TRIP LOGS"]
 
-    # Extract all rows (A..U => 21 columns) from row 7 onwards
+    # Extract all rows from row 7 onwards (assuming max 10 useful columns)
     data = []
-    for row in ws.iter_rows(min_row=7, max_col=21, values_only=True):
-        # row will be a 21-element tuple (if the sheet truly has 21 columns)
+    for row in ws.iter_rows(min_row=7, max_col=10, values_only=True):
         if any(row):  # Avoid empty rows
             data.append(row)
 
     if data:
-        # Define 21 column headers
-        columns_21 = [
-            "Date", "Client", "Base", "Home",
+        columns = [
+            "Date", "Client", "Base", "Home Address",
             "Destination 1", "Destination 2", "Destination 3", "Destination 4", "Destination 5",
-            "Col10", "Col11", "Col12", "Col13", "Col14", "Col15", "Col16", "Col17", "Col18", "Col19", "Col20", "Col21"
+            "Extras"
         ]
-        df = pd.DataFrame(data, columns=columns_21)
+        df = pd.DataFrame(data, columns=columns)
 
         st.dataframe(df)
 
@@ -80,5 +92,3 @@ try:
 
 except Exception as e:
     st.error(f"⚠️ Could not load trip logs: {e}")
-
-# Run with: streamlit run src/streamlit_app.py
