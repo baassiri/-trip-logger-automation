@@ -51,14 +51,33 @@ for i in range(address_count):
         addresses.append(full_address)
 
 # Button to log the trip
+import time
+from config import upload_to_drive
+
 if st.button("Log Trip"):
     if client_name and addresses:
         detected_clients = [client_name]
-        detected_addresses = {client_name: addresses}  # Store addresses in dictionary
+        detected_addresses = {client_name: addresses}
+
+        # Debug: Confirm function is running
+        st.write("⚙️ Running `force_update_trip_log()`...")
+        start_time = time.time()
         force_update_trip_log(detected_clients, detected_addresses)
-        st.success(f"✅ Trip logged for {client_name}")
+        end_time = time.time()
+
+        # Debug: Check if file was modified
+        mod_time = os.path.getmtime(FILE_PATH)
+        st.write(f"✅ Trip log function executed in {round(end_time - start_time, 2)} sec.")
+        st.write(f"🕒 Last modified time: {time.ctime(mod_time)}")
+
+        # Upload to Drive manually
+        st.write("📤 Uploading file to Google Drive...")
+        upload_to_drive()
+        st.success(f"✅ Trip logged for {client_name} and uploaded to Drive!")
+
     else:
         st.warning("⚠️ Please enter both Client Name and at least one complete Address.")
+
 
 # Load and display the trip logs
 st.subheader("📋 Current Trip Logs")
