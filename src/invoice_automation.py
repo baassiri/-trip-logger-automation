@@ -23,15 +23,17 @@ def force_update_trip_log(detected_clients, detected_addresses):
     print(f"📅 Processing trip logs for: {current_date}")
 
     # Determine the last row with actual data in Column A by iterating backward
-    last_used_row = 7  # start at row 7
-    for row in range(ws.max_row, 6, -1):  # from max_row down to row 7
-        cell_value = ws.cell(row=row, column=1).value
-        if cell_value is not None and str(cell_value).strip() != "":
+    # Find the last row that contains a valid client name in Column B
+    last_used_row = 7  # Start looking from row 7
+    for row in range(ws.max_row, 6, -1):  # Scan backwards
+        client_name = ws.cell(row=row, column=2).value  # Column B holds client names
+        if client_name and str(client_name).strip():  # If it's not empty
             last_used_row = row
             break
 
-    # The next new entry will be added in the row immediately after the last used row
+    # The next new entry should go **right after** the last valid client row
     new_row = last_used_row + 1
+
 
     for client in detected_clients:
         addresses = detected_addresses.get(client, [])
